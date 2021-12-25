@@ -6,11 +6,14 @@ BlockWidth := ScreenWidth / 9
 BlockHeight := ScreenHeight / 9
 
 Leader := "\"
+Leader2 := "]"
 ChordX1 := "r"
 ChordX2 := "f"
 ChordX3 := "e"
 ChordX4 := "d"
 
+Hotkey Leader " & " Leader2, HandleChord
+Hotkey Leader2 " & " Leader, HandleChord
 Hotkey Leader " & " ChordX1, HandleChord
 Hotkey Leader " & " ChordX2, HandleChord
 Hotkey Leader " & " ChordX3, HandleChord
@@ -21,55 +24,43 @@ LeaderNormal(*) {
     Send Leader
 }
 
-/*
-00
-01
-02
-10
-11
-12
-20
-21
-22
-*/
-
 HandleChord(*) {
     if (not IsActive(ChordX1) and not IsActive(ChordX2) and not IsActive(ChordX3) and not IsActive(ChordX4)) {
-        GoToBlock(1, 1)
+        xBlock := 1
     }
     if (IsActive(ChordX1) and not IsActive(ChordX2) and not IsActive(ChordX3) and not IsActive(ChordX4)) {
-        GoToBlock(1, 2)
+        xBlock := 2
     }
     if (not IsActive(ChordX1) and IsActive(ChordX2) and not IsActive(ChordX3) and not IsActive(ChordX4)) {
-        GoToBlock(1, 3)
+        xBlock := 3
     }
     if (not IsActive(ChordX1) and not IsActive(ChordX2) and IsActive(ChordX3) and not IsActive(ChordX4)) {
-        GoToBlock(1, 4)
+        xBlock := 4
     }
     if (IsActive(ChordX1) and not IsActive(ChordX2) and IsActive(ChordX3) and not IsActive(ChordX4)) {
-        GoToBlock(1, 5)
+        xBlock := 5
     }
     if (not IsActive(ChordX1) and IsActive(ChordX2) and IsActive(ChordX3) and not IsActive(ChordX4)) {
-        GoToBlock(1, 6)
+        xBlock := 6
     }
     if (not IsActive(ChordX1) and not IsActive(ChordX2) and not IsActive(ChordX3) and IsActive(ChordX4)) {
-        GoToBlock(1, 7)
+        xBlock := 7
     }
     if (IsActive(ChordX1) and not IsActive(ChordX2) and not IsActive(ChordX3) and IsActive(ChordX4)) {
-        GoToBlock(1, 8)
+        xBlock := 8
     }
     if (not IsActive(ChordX1) and IsActive(ChordX2) and not IsActive(ChordX3) and IsActive(ChordX4)) {
-        GoToBlock(1, 9)
+        xBlock := 9
     }
-    ; OutputDebug "f: " GetKeyState("f", "P")
-    ; OutputDebug "r: " GetKeyState("r", "P") 
+
+    GoToBlock(xBlock, 1)
 }
 IsActive(key) {
     return GetKeyState(key, "P")
 }
 
 GoToBlock(blockX, blockY) {
-    x := ((blockX - 1) * BlockWidth)
+    x := ((blockX - 1) * BlockWidth) + (BlockWidth / 2)
     y := ((blockY - 1) * BlockHeight)
     MouseMove x, y
 }
