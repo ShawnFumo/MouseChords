@@ -5,8 +5,11 @@ ScreenHeight := SysGet(79)
 BlockWidth := ScreenWidth / 9
 BlockHeight := ScreenHeight / 9
 
-Leader := "\"
-Absolute := "]"
+Leader := "["
+LClick := "Space"
+RClick := "/"
+
+Absolute := "\"
 ChordX1 := "r"
 ChordX2 := "f"
 ChordX3 := "e"
@@ -15,6 +18,12 @@ ChordY1 := "w"
 ChordY2 := "s"
 ChordY3 := "q"
 ChordY4 := "a"
+
+Movement := "]"
+MoveDown := "d"
+MoveUp := "e"
+MoveLeft := "s"
+MoveRight := "f"
 
 Hotkey "*" Leader, HandleChord
 
@@ -25,13 +34,11 @@ HandleChord(*) {
     Loop {
         if (IsActive(Absolute)) {
             DidSomething := True
-            xKeys := [ChordX1, ChordX2, ChordX3, ChordX4]
-            xBlock := CheckDimension(xKeys)
+            HandleAbsolute()
+        }
 
-            yKeys := [ChordY1, ChordY2, ChordY3, ChordY4]
-            yBlock := CheckDimension(yKeys)
-            
-            GoToBlock(xBlock, yBlock)
+        if (IsActive(Movement)) {
+            DidSomething := True
         }
 
         if (not IsActive(Leader)) {
@@ -42,6 +49,16 @@ HandleChord(*) {
             break
         }
     }
+}
+
+HandleAbsolute() {
+    xKeys := [ChordX1, ChordX2, ChordX3, ChordX4]
+    xBlock := CheckDimension(xKeys)
+
+    yKeys := [ChordY1, ChordY2, ChordY3, ChordY4]
+    yBlock := CheckDimension(yKeys)
+    
+    GoToBlock(xBlock, yBlock)
 }
 
 CheckDimension(keys) {
@@ -70,18 +87,49 @@ MatchMask(keys, masks) {
     return IsActive(keys[1]) = masks[1] and IsActive(keys[2]) = masks[2] and IsActive(keys[3]) = masks[3] and IsActive(keys[4]) = masks[4]
 }
 
-Nada(*) {
-    return
+DoMoveDown(*) {
+    DoMove(0, 1)
 }
+DoMoveUp(*) {
+    DoMove(0, -1) 
+}
+DoMoveLeft(*) {
+    DoMove(-1, 0)
+}
+DoMoveRight(*) {
+    DoMove(1, 0) 
+}
+
+DoMove(x, y) {
+    MouseMove (x * (BlockWidth / 4)), (y * (BlockHeight / 4)), , "Relative"
+}
+
+Nada := (*) => ""
 
 IsActive(key) {
     return GetKeyState(key, "P")
 }
 
 SetSecondaryHotkeys(state) {
+    Hotkey LClick, DoLeftClick, state
+    Hotkey RClick, DoRightClick, state
+
     for key in [Absolute, ChordX1, ChordX2, ChordX3, ChordX4, ChordY1, ChordY2, ChordY3, ChordY4] {
         Hotkey "*" key, Nada, state
     }
+
+    Hotkey Movement " & " MoveDown, DoMoveDown, state
+    Hotkey Movement " & " MoveUp, DoMoveUp, state
+    Hotkey Movement " & " MoveLeft, DoMoveLeft, state
+    Hotkey Movement " & " MoveRight, DoMoveRight, state
+}
+
+DoLeftClick(*) {
+    Click "Left"
+}
+
+DoRightClick(*) {
+    Click "Right"
 }
 
 GoToBlock(blockX, blockY) {
