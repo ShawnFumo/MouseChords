@@ -111,8 +111,8 @@ IsActive(key) {
 }
 
 SetSecondaryHotkeys(state) {
-    Hotkey LClick, DoLeftClick, state
-    Hotkey RClick, DoRightClick, state
+    Hotkey "*" LClick, DoLeftClick, state
+    Hotkey "*" RClick, DoRightClick, state
 
     for key in [Absolute, ChordX1, ChordX2, ChordX3, ChordX4, ChordY1, ChordY2, ChordY3, ChordY4] {
         Hotkey "*" key, Nada, state
