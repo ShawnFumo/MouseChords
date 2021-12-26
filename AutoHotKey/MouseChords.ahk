@@ -10,6 +10,7 @@ LClick := "Space"
 RClick := "/"
 
 Absolute := "\"
+ChordNull := "g"
 ChordX1 := "f"
 ChordX2 := "r"
 ChordX3 := "d"
@@ -34,11 +35,21 @@ Hotkey "*" Leader, HandleChord
 HandleChord(*) {
     SetSecondaryHotkeys("On")
     DidSomething := False
+    InAbs := false
 
     Loop {
         if (IsActive(Absolute)) {
             DidSomething := True
+            if (not InAbs) {
+                InAbs := True
+                DrawAbsTips(True)
+            }
             HandleAbsolute()
+        } else {
+            if (InAbs) {
+                InAbs := false
+                DrawAbsTips(False)
+            }
         }
 
         if (IsActive(Movement)) {
@@ -65,9 +76,30 @@ HandleAbsolute() {
     GoToBlock(xBlock, yBlock)
 }
 
+DrawAbsTips(isOn) {
+    for n in [1, 2, 3, 4, 5, 6, 7, 8, 9] {
+        label := (isOn = True) ? n : ""
+        xPos := ((n - 1) * BlockWidth) + (BlockWidth / 2)
+        yPos := BlockHeight / 2
+        ToolTip label, xPos, yPos, n
+    }
+
+    for n in [2, 3, 4, 5, 6, 7, 8, 9] {
+        label := (isOn = True) ? n : ""
+        xPos := BlockWidth / 2
+        yPos := ((n - 1) * BlockHeight) + (BlockHeight / 2)
+        ToolTip label, xPos, yPos, 9+n-1
+    }
+
+    centerLabel := (isOn = true) ? "c" : ""
+    ToolTip centerLabel, ScreenWidth/2, ScreenHeight/2, 18
+}
+
 CheckDimension(keys) {
-    if (MatchMask(keys, [0, 0, 0, 0]))
+    if (IsActive(ChordNull))
         return 1
+    ; if (MatchMask(keys, [0, 0, 0, 0]))
+    ;     return 0
     if (MatchMask(keys, [1, 0, 0, 0]))
         return 2
     if (MatchMask(keys, [0, 1, 0, 0]))
@@ -84,7 +116,7 @@ CheckDimension(keys) {
         return 8
     if (MatchMask(keys, [0, 1, 0, 1]))
         return 9
-    return 1
+    return 0
 }
 
 MatchMask(keys, masks) {
@@ -118,7 +150,7 @@ SetSecondaryHotkeys(state) {
     Hotkey "*" LClick, DoLeftClick, state
     Hotkey "*" RClick, DoRightClick, state
 
-    for key in [Absolute, ChordX1, ChordX2, ChordX3, ChordX4, ChordY1, ChordY2, ChordY3, ChordY4] {
+    for key in [Absolute, ChordNull, ChordX1, ChordX2, ChordX3, ChordX4, ChordY1, ChordY2, ChordY3, ChordY4] {
         Hotkey "*" key, Nada, state
     }
 
@@ -141,7 +173,9 @@ DoRightClick(*) {
 }
 
 GoToBlock(blockX, blockY) {
-    x := ((blockX - 1) * BlockWidth) + (BlockWidth / 2)
-    y := ((blockY - 1) * BlockHeight)
+    MouseGetPos &currentX, &currentY
+
+    x := (blockX != 0) ? ((blockX - 1) * BlockWidth) + (BlockWidth / 2) : currentX
+    y := (blockY != 0) ? ((blockY - 1) * BlockHeight) + (BlockHeight / 2) : currentY
     MouseMove x, y
 }
