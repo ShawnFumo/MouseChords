@@ -10,20 +10,24 @@ LClick := "Space"
 RClick := "/"
 
 Absolute := "\"
-ChordX1 := "r"
-ChordX2 := "f"
-ChordX3 := "e"
-ChordX4 := "d"
-ChordY1 := "w"
-ChordY2 := "s"
-ChordY3 := "q"
-ChordY4 := "a"
+ChordX1 := "f"
+ChordX2 := "r"
+ChordX3 := "d"
+ChordX4 := "e"
+ChordY1 := "s"
+ChordY2 := "w"
+ChordY3 := "a"
+ChordY4 := "q"
 
 Movement := "]"
 MoveDown := "d"
 MoveUp := "e"
 MoveLeft := "s"
 MoveRight := "f"
+MoveLeftAlt := "z"
+MoveDownAlt := "x"
+MoveUpAlt := "c"
+MoveRightAlt := "v"
 
 Hotkey "*" Leader, HandleChord
 
@@ -122,6 +126,10 @@ SetSecondaryHotkeys(state) {
     Hotkey Movement " & " MoveUp, DoMoveUp, state
     Hotkey Movement " & " MoveLeft, DoMoveLeft, state
     Hotkey Movement " & " MoveRight, DoMoveRight, state
+    Hotkey "*" MoveDownAlt, DoMoveDown, state
+    Hotkey "*" MoveUpAlt, DoMoveUp, state
+    Hotkey "*" MoveLeftAlt, DoMoveLeft, state
+    Hotkey "*" MoveRightAlt, DoMoveRight, state
 }
 
 DoLeftClick(*) {
