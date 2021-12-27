@@ -30,6 +30,7 @@ MoveDownAlt := "x"
 MoveUpAlt := "c"
 MoveRightAlt := "v"
 
+SetupOverlay()
 Hotkey "*" Leader, HandleChord
 
 HandleChord(*) {
@@ -42,13 +43,13 @@ HandleChord(*) {
             DidSomething := True
             if (not InAbs) {
                 InAbs := True
-                DrawAbsTips(True)
+                ShowOverlay()
             }
             HandleAbsolute()
         } else {
             if (InAbs) {
                 InAbs := false
-                DrawAbsTips(False)
+                HideOverlay()
             }
         }
 
@@ -66,6 +67,32 @@ HandleChord(*) {
     }
 }
 
+SetupOverlay() {
+    global MyGui := Gui()
+    MyGui.Opt("+AlwaysOnTop -Caption +ToolWindow -DPIScale") ; On top, no caption, don't put in start bar or alt-tab
+    MyGui.MarginX := 0
+    MyGui.MarginY := 0
+    MyGui.BackColor := "EEAA99" ; The random color that will be made invisible
+    MyGui.SetFont("s15") ; sXX = point size
+    transAmount := 75 ; out of 255
+    WinSetTransColor(MyGui.BackColor " " transAmount, MyGui) ; 50 is translucent
+    DrawAbsBlockMarks()
+ }
+
+AddBlockMark(x, y, label, alternate := false) {
+    ; E0x200 gives sunken edge border that shows up ok[]
+    back := (alternate) ? "000000" : "303030"
+    MyGui.Add("Text", Format("x{1} y{2} w{3} h{4} cAA0000 center background{5}", x, y, BlockWidth, BlockHeight, back), label)
+}
+
+ShowOverlay() {
+    MyGui.Show(Format("x0 y0 NoActivate w{1} h{2}", ScreenWidth, ScreenHeight)) ; Keep current win activated
+}
+
+HideOverlay() {
+    MyGui.Hide()
+}
+
 HandleAbsolute() {
     xKeys := [ChordX1, ChordX2, ChordX3, ChordX4]
     xBlock := CheckDimension(xKeys)
@@ -76,23 +103,18 @@ HandleAbsolute() {
     GoToBlock(xBlock, yBlock)
 }
 
-DrawAbsTips(isOn) {
-    for n in [1, 2, 3, 4, 5, 6, 7, 8, 9] {
-        label := (isOn = True) ? n : ""
-        xPos := ((n - 1) * BlockWidth) + (BlockWidth / 2)
-        yPos := BlockHeight / 2
-        ToolTip label, xPos, yPos, n
+DrawAbsBlockMarks() {
+    alternate := False
+    oneToNine := [1, 2, 3, 4, 5, 6, 7, 8, 9]
+    for nX in oneToNine {
+        for nY in oneToNine {
+            xPos := ((nX - 1) * BlockWidth)
+            yPos := ((nY - 1) * BlockHeight)
+            OutputDebug Format("x{1}: {2}, y{3}: {4}", nX, xPos, nY, yPos)
+            AddBlockMark(xPos, yPos, nX "," nY, alternate)
+            alternate := !alternate
+        }
     }
-
-    for n in [2, 3, 4, 5, 6, 7, 8, 9] {
-        label := (isOn = True) ? n : ""
-        xPos := BlockWidth / 2
-        yPos := ((n - 1) * BlockHeight) + (BlockHeight / 2)
-        ToolTip label, xPos, yPos, 9+n-1
-    }
-
-    centerLabel := (isOn = true) ? "c" : ""
-    ToolTip centerLabel, ScreenWidth/2, ScreenHeight/2, 18
 }
 
 CheckDimension(keys) {
@@ -137,7 +159,7 @@ DoMoveRight(*) {
 }
 
 DoMove(x, y) {
-    MouseMove (x * (BlockWidth / 4)), (y * (BlockHeight / 4)), , "Relative"
+    MouseMove (x * (BlockWidth / 5)), (y * (BlockHeight / 5)), , "Relative"
 }
 
 Nada := (*) => ""
