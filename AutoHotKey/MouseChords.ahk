@@ -6,7 +6,8 @@ RClick := "/"
 
 AbsoluteSwitch := "\"
 StartAtLowerLeft := true
-; ChordNull := "g"
+ShowGrid := True
+PartialGrid := False
 ChordXNull := "z"
 ChordYNull := "v"
 ChordX1 := "a"
@@ -23,10 +24,10 @@ MoveDown := "d"
 MoveUp := "e"
 MoveLeft := "s"
 MoveRight := "f"
-MoveLeftAlt := "z"
-MoveDownAlt := "x"
-MoveUpAlt := "c"
-MoveRightAlt := "v"
+WheelUp := "w"
+WheelDown := "c"
+
+WriteLogs := false
 
 ; ##### End User Config #####
 
@@ -43,10 +44,15 @@ Hotkey "*" Leader, StartMouseMode
 
 InMouseMode := false
 
+Log(message) {
+    if (WriteLogs)
+        OutputDebug message
+}
+
 StartMouseMode(*) {
     if (InMouseMode)
         return
-    OutputDebug "Enter Mouse Mode"
+    Log "Enter Mouse Mode"
     
     global InMouseMode := true
     global DidSomething := false
@@ -61,11 +67,11 @@ StartMouseMode(*) {
 
 EventLoop() {
     SetSecondaryHotkeys("On")
-    OutputDebug Format("Event Loop")
+    Log Format("Event Loop")
     if (IsActive(AbsoluteSwitch)) {
         global DidSomething := True
         if (not InAbsolute) {
-            OutputDebug "Entering Absolute"
+            Log "Entering Absolute"
             global InRelative := False
             global InAbsolute := True
             global AbsoluteSwitchLifted := false
@@ -81,19 +87,20 @@ EventLoop() {
         finishedChord := (ChordKeysPressed > 0 and GetActiveChordKeys() = 0)
         rePressedSwitch := (AbsoluteSwitchLifted and IsActive(AbsoluteSwitch))
         if (finishedChord or rePressedSwitch) {
-            OutputDebug "Exiting Absolute"
+            Log "Exiting Absolute"
             HideOverlay()
             global ChordKeysPressed := 0
             global InAbsolute := false
             global InRelative := true
             if (rePressedSwitch)
-                Sleep 150 ; Prevent immediately reactivating it
+                KeyWait AbsoluteSwitch ; Prevent immediately reactivating it
         }
         if (GetActiveChordKeys() > ChordKeysPressed)
             HandleAbsolute()
     }
 
     if (InRelative) {
+        global DidSomething := True
         if (IsActive(MoveLeft))
             DoMove(-1, 0)
         if (IsActive(MoveRight))
@@ -102,6 +109,10 @@ EventLoop() {
             DoMove(0, -1)
         if (IsActive(MoveDown))
             DoMove(0, 1)
+        if (IsActive(WheelDown))
+            DoWheel(True)
+        if (IsActive(WheelUp))
+            DoWheel(False)
     }
 
     if (IsActive(Movement)) {
@@ -109,7 +120,7 @@ EventLoop() {
     }
 
     if (not IsActive(Leader)) {
-        OutputDebug "Exit Mouse Mode"
+        Log "Exit Mouse Mode"
         SetTimer(EventLoop, 0)
         HideOverlay()
         SetSecondaryHotkeys("Off")
@@ -121,6 +132,8 @@ EventLoop() {
 }
 
 SetupOverlay() {
+    if (not ShowGrid)
+        return
     global MyGui := Gui()
     MyGui.Opt("+AlwaysOnTop -Caption +ToolWindow -DPIScale") ; On top, no caption, don't put in start bar or alt-tab
     MyGui.MarginX := 0
@@ -139,11 +152,15 @@ AddBlockMark(x, y, label, alternate := false) {
 }
 
 ShowOverlay() {
-    OutputDebug "Show Overlay"
+    if (not ShowGrid)
+        return
+    Log "Show Overlay"
     MyGui.Show(Format("x0 y0 NoActivate", ScreenWidth, ScreenHeight)) ; Keep current win activated
 }
 
 HideOverlay() {
+    if (not ShowGrid)
+        return
     MyGui.Hide()
 }
 
@@ -171,10 +188,12 @@ DrawAbsBlockMarks() {
     oneToNine := [1, 2, 3, 4, 5, 6, 7, 8, 9]
     for nX in oneToNine {
         for nY in oneToNine {
+            if (PartialGrid and !(nX = 1 or nX = 9 or nY = 1 or nY = 9 or (nX = 5 and nY = 5)))
+                Continue
             xPos := ((nX - 1) * BlockWidth)
             yPos := ((nY - 1) * BlockHeight)
             yPos := ScreenHeight-yPos-BlockHeight ; Paint from lower left instead of upper left
-            ; OutputDebug Format("x{1}: {2}, y{3}: {4}", nX, xPos, nY, yPos)
+            ; Log Format("x{1}: {2}, y{3}: {4}", nX, xPos, nY, yPos)
             AddBlockMark(xPos, yPos, nX "," nY, alternate)
             alternate := !alternate
         }
@@ -210,7 +229,16 @@ MatchMask(keys, masks) {
 }
 
 DoMove(x, y) {
-    MouseMove (x * (BlockWidth / 5)), (y * (BlockHeight / 5)), , "Relative"
+    MouseMove (x * (BlockWidth / 9)), (y * (BlockHeight / 9)), , "Relative"
+}
+DoWheel(isDown) {
+    ; Using this still scrolls too much: MouseClick "WheelDown",,, 1
+    direction := isDown ? -1 : 1
+    MouseGetPos &mouseX, &mouseY, &mouseWin
+
+    amount := 50 * direction
+    mousewheel_code := 0x20A
+    PostMessage mousewheel_codex, amount<<16, mouseX|(mouseY<<16),, "ahk_id " mouseWin
 }
 
 Nada := (*) => ""
@@ -223,7 +251,7 @@ SetSecondaryHotkeys(state) {
     Hotkey "*" LClick, DoLeftClick, state
     Hotkey "*" RClick, DoRightClick, state
 
-    for key in [AbsoluteSwitch, ChordXNull, ChordX1, ChordX2, ChordX3, ChordX4, ChordYNull, ChordY1, ChordY2, ChordY3, ChordY4] {
+    for key in [AbsoluteSwitch, ChordXNull, ChordX1, ChordX2, ChordX3, ChordX4, ChordYNull, ChordY1, ChordY2, ChordY3, ChordY4, WheelDown, WheelUp] {
         Hotkey "*" key, Nada, state
     }
 }
