@@ -10,15 +10,17 @@ LClick := "Space"
 RClick := "/"
 
 Absolute := "\"
-ChordNull := "g"
-ChordX1 := "s"
-ChordX2 := "w"
-ChordX3 := "a"
-ChordX4 := "q"
-ChordY1 := "f"
-ChordY2 := "r"
-ChordY3 := "d"
-ChordY4 := "e"
+; ChordNull := "g"
+ChordXNull := "z"
+ChordYNull := "v"
+ChordX1 := "a"
+ChordX2 := "s"
+ChordX3 := "q"
+ChordX4 := "w"
+ChordY1 := "d"
+ChordY2 := "f"
+ChordY3 := "e"
+ChordY4 := "r"
 
 Movement := "]"
 MoveDown := "d"
@@ -95,10 +97,10 @@ HideOverlay() {
 
 HandleAbsolute() {
     xKeys := [ChordX1, ChordX2, ChordX3, ChordX4]
-    xBlock := CheckDimension(xKeys)
+    xBlock := (!IsActive(ChordXNull)) ? CheckDimension(xKeys) : 1
 
     yKeys := [ChordY1, ChordY2, ChordY3, ChordY4]
-    yBlock := CheckDimension(yKeys)
+    yBlock := (!IsActive(ChordYNull)) ? CheckDimension(yKeys) : 1
     
     GoToBlock(xBlock, yBlock)
 }
@@ -119,25 +121,25 @@ DrawAbsBlockMarks() {
 }
 
 CheckDimension(keys) {
-    if (IsActive(ChordNull))
-        return 1
+    ; if (IsActive(ChordNull))
+    ;     return 1
     ; if (MatchMask(keys, [0, 0, 0, 0]))
-    ;     return 0
+    ;     return 1
     if (MatchMask(keys, [1, 0, 0, 0]))
         return 2
     if (MatchMask(keys, [0, 1, 0, 0]))
         return 3
-    if (MatchMask(keys, [0, 0, 1, 0]))
+    if (MatchMask(keys, [1, 0, 0, 1]))
         return 4
-    if (MatchMask(keys, [1, 0, 1, 0]))
+    if (MatchMask(keys, [1, 1, 0, 0]))
         return 5
-    if (MatchMask(keys, [0, 1, 1, 0]))
+    if (MatchMask(keys, [0, 0, 1, 0]))
         return 6
     if (MatchMask(keys, [0, 0, 0, 1]))
         return 7
-    if (MatchMask(keys, [1, 0, 0, 1]))
+    if (MatchMask(keys, [0, 1, 1, 0]))
         return 8
-    if (MatchMask(keys, [0, 1, 0, 1]))
+    if (MatchMask(keys, [0, 0, 1, 1]))
         return 9
     return 0
 }
@@ -173,7 +175,7 @@ SetSecondaryHotkeys(state) {
     Hotkey "*" LClick, DoLeftClick, state
     Hotkey "*" RClick, DoRightClick, state
 
-    for key in [Absolute, ChordNull, ChordX1, ChordX2, ChordX3, ChordX4, ChordY1, ChordY2, ChordY3, ChordY4] {
+    for key in [Absolute, ChordXNull, ChordX1, ChordX2, ChordX3, ChordX4, ChordYNull, ChordY1, ChordY2, ChordY3, ChordY4] {
         Hotkey "*" key, Nada, state
     }
 
@@ -181,10 +183,10 @@ SetSecondaryHotkeys(state) {
     Hotkey Movement " & " MoveUp, DoMoveUp, state
     Hotkey Movement " & " MoveLeft, DoMoveLeft, state
     Hotkey Movement " & " MoveRight, DoMoveRight, state
-    Hotkey "*" MoveDownAlt, DoMoveDown, state
-    Hotkey "*" MoveUpAlt, DoMoveUp, state
-    Hotkey "*" MoveLeftAlt, DoMoveLeft, state
-    Hotkey "*" MoveRightAlt, DoMoveRight, state
+    ; Hotkey "*" MoveDownAlt, DoMoveDown, state
+    ; Hotkey "*" MoveUpAlt, DoMoveUp, state
+    ; Hotkey "*" MoveLeftAlt, DoMoveLeft, state
+    ; Hotkey "*" MoveRightAlt, DoMoveRight, state
 }
 
 DoLeftClick(*) {
