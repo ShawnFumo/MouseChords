@@ -11,14 +11,14 @@ RClick := "/"
 
 Absolute := "\"
 ChordNull := "g"
-ChordX1 := "f"
-ChordX2 := "r"
-ChordX3 := "d"
-ChordX4 := "e"
-ChordY1 := "s"
-ChordY2 := "w"
-ChordY3 := "a"
-ChordY4 := "q"
+ChordX1 := "s"
+ChordX2 := "w"
+ChordX3 := "a"
+ChordX4 := "q"
+ChordY1 := "f"
+ChordY2 := "r"
+ChordY3 := "d"
+ChordY4 := "e"
 
 Movement := "]"
 MoveDown := "d"
@@ -110,7 +110,8 @@ DrawAbsBlockMarks() {
         for nY in oneToNine {
             xPos := ((nX - 1) * BlockWidth)
             yPos := ((nY - 1) * BlockHeight)
-            OutputDebug Format("x{1}: {2}, y{3}: {4}", nX, xPos, nY, yPos)
+            yPos := ScreenHeight-yPos-BlockHeight ; Paint from lower left instead of upper left
+            ; OutputDebug Format("x{1}: {2}, y{3}: {4}", nX, xPos, nY, yPos)
             AddBlockMark(xPos, yPos, nX "," nY, alternate)
             alternate := !alternate
         }
@@ -198,6 +199,8 @@ GoToBlock(blockX, blockY) {
     MouseGetPos &currentX, &currentY
 
     x := (blockX != 0) ? ((blockX - 1) * BlockWidth) + (BlockWidth / 2) : currentX
-    y := (blockY != 0) ? ((blockY - 1) * BlockHeight) + (BlockHeight / 2) : currentY
+    y := ((blockY - 1) * BlockHeight) + (BlockHeight / 2)
+    y := (blockY != 0) ? ScreenHeight-y : currentY ; Paint from lower left instead of upper left
+
     MouseMove x, y
 }
