@@ -1,15 +1,11 @@
-CoordMode "Mouse", "Screen"
-
-ScreenWidth := SysGet(78)
-ScreenHeight := SysGet(79)
-BlockWidth := ScreenWidth / 9
-BlockHeight := ScreenHeight / 9
+; ##### User Config #####
 
 Leader := "["
 LClick := "Space"
 RClick := "/"
 
-Absolute := "\"
+AbsoluteSwitch := "\"
+StartAtLowerLeft := true
 ; ChordNull := "g"
 ChordXNull := "z"
 ChordYNull := "v"
@@ -32,39 +28,94 @@ MoveDownAlt := "x"
 MoveUpAlt := "c"
 MoveRightAlt := "v"
 
+; ##### End User Config #####
+
+
+
+CoordMode "Mouse", "Screen"
+ScreenWidth := SysGet(78)
+ScreenHeight := SysGet(79)
+BlockWidth := ScreenWidth / 9
+BlockHeight := ScreenHeight / 9
+
 SetupOverlay()
-Hotkey "*" Leader, HandleChord
+Hotkey "*" Leader, StartMouseMode
 
-HandleChord(*) {
+InMouseMode := false
+
+StartMouseMode(*) {
+    if (InMouseMode)
+        return
+    OutputDebug "Enter Mouse Mode"
+    
+    global InMouseMode := true
+    global DidSomething := false
+    global InRelative := true
+    global InAbsolute := false
+    global ChordKeysPressed := 0
+    global AbsoluteSwitchLifted := false
+
+    SetTimer(EventLoop, 50)
+}
+
+
+EventLoop() {
     SetSecondaryHotkeys("On")
-    DidSomething := False
-    InAbs := false
+    OutputDebug Format("Event Loop")
+    if (IsActive(AbsoluteSwitch)) {
+        global DidSomething := True
+        if (not InAbsolute) {
+            OutputDebug "Entering Absolute"
+            global InRelative := False
+            global InAbsolute := True
+            global AbsoluteSwitchLifted := false
+            ShowOverlay()
+            if (StartAtLowerLeft)
+                GoToBlock(1, 1)
+        }
+    }
 
-    Loop {
-        if (IsActive(Absolute)) {
-            DidSomething := True
-            if (not InAbs) {
-                InAbs := True
-                ShowOverlay()
-            }
+    if (InAbsolute) {
+        if (not IsActive(AbsoluteSwitch))
+            global AbsoluteSwitchLifted := True
+        finishedChord := (ChordKeysPressed > 0 and GetActiveChordKeys() = 0)
+        rePressedSwitch := (AbsoluteSwitchLifted and IsActive(AbsoluteSwitch))
+        if (finishedChord or rePressedSwitch) {
+            OutputDebug "Exiting Absolute"
+            HideOverlay()
+            global ChordKeysPressed := 0
+            global InAbsolute := false
+            global InRelative := true
+            if (rePressedSwitch)
+                Sleep 150 ; Prevent immediately reactivating it
+        }
+        if (GetActiveChordKeys() > ChordKeysPressed)
             HandleAbsolute()
-        } else {
-            if (InAbs) {
-                InAbs := false
-                HideOverlay()
-            }
-        }
+    }
 
-        if (IsActive(Movement)) {
-            DidSomething := True
-        }
+    if (InRelative) {
+        if (IsActive(MoveLeft))
+            DoMove(-1, 0)
+        if (IsActive(MoveRight))
+            DoMove(1, 0)
+        if (IsActive(MoveUp))
+            DoMove(0, -1)
+        if (IsActive(MoveDown))
+            DoMove(0, 1)
+    }
 
-        if (not IsActive(Leader)) {
-            SetSecondaryHotkeys("Off")
-            if (not DidSomething) {
-                Send Leader
-            }
-            break
+    if (IsActive(Movement)) {
+        global DidSomething := True
+    }
+
+    if (not IsActive(Leader)) {
+        OutputDebug "Exit Mouse Mode"
+        SetTimer(EventLoop, 0)
+        HideOverlay()
+        SetSecondaryHotkeys("Off")
+        global InMouseMode := false
+        if (not DidSomething) {
+            Send Leader
         }
     }
 }
@@ -88,7 +139,8 @@ AddBlockMark(x, y, label, alternate := false) {
 }
 
 ShowOverlay() {
-    MyGui.Show(Format("x0 y0 NoActivate w{1} h{2}", ScreenWidth, ScreenHeight)) ; Keep current win activated
+    OutputDebug "Show Overlay"
+    MyGui.Show(Format("x0 y0 NoActivate", ScreenWidth, ScreenHeight)) ; Keep current win activated
 }
 
 HideOverlay() {
@@ -96,6 +148,7 @@ HideOverlay() {
 }
 
 HandleAbsolute() {
+    global ChordKeysPressed := GetActiveChordKeys()
     xKeys := [ChordX1, ChordX2, ChordX3, ChordX4]
     xBlock := (!IsActive(ChordXNull)) ? CheckDimension(xKeys) : 1
 
@@ -103,6 +156,14 @@ HandleAbsolute() {
     yBlock := (!IsActive(ChordYNull)) ? CheckDimension(yKeys) : 1
     
     GoToBlock(xBlock, yBlock)
+}
+
+GetActiveChordKeys() {
+    total := 0
+    for key in [ChordX1, ChordX2, ChordX3, ChordX4, ChordY1, ChordY2, ChordY3, ChordY4, ChordXNull, ChordYNull] {
+        total += IsActive(key)
+    }
+    return total
 }
 
 DrawAbsBlockMarks() {
@@ -148,19 +209,6 @@ MatchMask(keys, masks) {
     return IsActive(keys[1]) = masks[1] and IsActive(keys[2]) = masks[2] and IsActive(keys[3]) = masks[3] and IsActive(keys[4]) = masks[4]
 }
 
-DoMoveDown(*) {
-    DoMove(0, 1)
-}
-DoMoveUp(*) {
-    DoMove(0, -1) 
-}
-DoMoveLeft(*) {
-    DoMove(-1, 0)
-}
-DoMoveRight(*) {
-    DoMove(1, 0) 
-}
-
 DoMove(x, y) {
     MouseMove (x * (BlockWidth / 5)), (y * (BlockHeight / 5)), , "Relative"
 }
@@ -175,18 +223,9 @@ SetSecondaryHotkeys(state) {
     Hotkey "*" LClick, DoLeftClick, state
     Hotkey "*" RClick, DoRightClick, state
 
-    for key in [Absolute, ChordXNull, ChordX1, ChordX2, ChordX3, ChordX4, ChordYNull, ChordY1, ChordY2, ChordY3, ChordY4] {
+    for key in [AbsoluteSwitch, ChordXNull, ChordX1, ChordX2, ChordX3, ChordX4, ChordYNull, ChordY1, ChordY2, ChordY3, ChordY4] {
         Hotkey "*" key, Nada, state
     }
-
-    Hotkey Movement " & " MoveDown, DoMoveDown, state
-    Hotkey Movement " & " MoveUp, DoMoveUp, state
-    Hotkey Movement " & " MoveLeft, DoMoveLeft, state
-    Hotkey Movement " & " MoveRight, DoMoveRight, state
-    ; Hotkey "*" MoveDownAlt, DoMoveDown, state
-    ; Hotkey "*" MoveUpAlt, DoMoveUp, state
-    ; Hotkey "*" MoveLeftAlt, DoMoveLeft, state
-    ; Hotkey "*" MoveRightAlt, DoMoveRight, state
 }
 
 DoLeftClick(*) {
