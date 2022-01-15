@@ -1,11 +1,10 @@
 ; ##### User Config #####
 
-Leader := "["
-LClick := "Space"
+Leader := ","
+LClick := "m"
 RClick := "/"
 
-AbsoluteSwitch := "\"
-StartAtLowerLeft := true
+AbsoluteSwitch := "."
 ShowGrid := True
 PartialGrid := False
 ChordXNull := "z"
@@ -19,15 +18,16 @@ ChordY2 := "f"
 ChordY3 := "e"
 ChordY4 := "r"
 
-Movement := "]"
 MoveDown := "d"
 MoveUp := "e"
 MoveLeft := "s"
 MoveRight := "f"
-WheelUp := "w"
-WheelDown := "c"
+WheelUp := "c"
+WheelDown := "v"
 
-WriteLogs := false
+WriteLogs := False
+GridSize := 9
+StartAtLowerLeft := True
 
 ; ##### End User Config #####
 
@@ -36,13 +36,15 @@ WriteLogs := false
 CoordMode "Mouse", "Screen"
 ScreenWidth := SysGet(78)
 ScreenHeight := SysGet(79)
-BlockWidth := ScreenWidth / 9
-BlockHeight := ScreenHeight / 9
+BlockWidth := ScreenWidth / GridSize
+BlockHeight := ScreenHeight / GridSize
 
 SetupOverlay()
-Hotkey "*" Leader, StartMouseMode
 
-InMouseMode := false
+; Without * or $, IsActive fails while held. & is less aggressive, so modifier combos treat the key normally
+Hotkey "$" Leader, StartMouseMode
+
+InMouseMode := False
 
 Log(message) {
     if (WriteLogs)
@@ -69,9 +71,9 @@ EventLoop() {
     SetSecondaryHotkeys("On")
     Log Format("Event Loop")
     if (IsActive(AbsoluteSwitch)) {
-        global DidSomething := True
         if (not InAbsolute) {
             Log "Entering Absolute"
+            global DidSomething := True
             global InRelative := False
             global InAbsolute := True
             global AbsoluteSwitchLifted := false
@@ -100,7 +102,6 @@ EventLoop() {
     }
 
     if (InRelative) {
-        global DidSomething := True
         if (IsActive(MoveLeft))
             DoMove(-1, 0)
         if (IsActive(MoveRight))
@@ -113,10 +114,6 @@ EventLoop() {
             DoWheel(True)
         if (IsActive(WheelUp))
             DoWheel(False)
-    }
-
-    if (IsActive(Movement)) {
-        global DidSomething := True
     }
 
     if (not IsActive(Leader)) {
@@ -132,6 +129,7 @@ EventLoop() {
 }
 
 SetupOverlay() {
+    Log("Setup Overlay")
     if (not ShowGrid)
         return
     global MyGui := Gui()
@@ -185,9 +183,8 @@ GetActiveChordKeys() {
 
 DrawAbsBlockMarks() {
     alternate := False
-    oneToNine := [1, 2, 3, 4, 5, 6, 7, 8, 9]
-    for nX in oneToNine {
-        for nY in oneToNine {
+    for nX in Range(1, GridSize) {
+        for nY in Range(1, GridSize) {
             if (PartialGrid and !(nX = 1 or nX = 9 or nY = 1 or nY = 9 or (nX = 5 and nY = 5)))
                 Continue
             xPos := ((nX - 1) * BlockWidth)
@@ -197,7 +194,22 @@ DrawAbsBlockMarks() {
             AddBlockMark(xPos, yPos, nX "," nY, alternate)
             alternate := !alternate
         }
+        if (not IsEven(GridSize))
+            alternate := !alternate
     }
+}
+
+IsEven(n) {
+    return Mod(n, 2) = 0
+}
+
+Range(start, end, step := 1) {
+    range := []
+    current := start - step
+
+    return (&v) => (
+        &v := current, current += step, v <= end
+    )
 }
 
 CheckDimension(keys) {
@@ -229,39 +241,49 @@ MatchMask(keys, masks) {
 }
 
 DoMove(x, y) {
+    global DidSomething := True
     MouseMove (x * (BlockWidth / 9)), (y * (BlockHeight / 9)), , "Relative"
 }
 DoWheel(isDown) {
-    ; Using this still scrolls too much: MouseClick "WheelDown",,, 1
+    global DidSomething := True
+
+    ; Using MouseClick like 'MouseClick "WheelDown",,, 1' still scrolls too much
     direction := isDown ? -1 : 1
     MouseGetPos &mouseX, &mouseY, &mouseWin
 
     amount := 50 * direction
     mousewheel_code := 0x20A
-    PostMessage mousewheel_codex, amount<<16, mouseX|(mouseY<<16),, "ahk_id " mouseWin
+    PostMessage mousewheel_code, amount<<16, mouseX|(mouseY<<16),, "ahk_id " mouseWin
 }
-
-Nada := (*) => ""
 
 IsActive(key) {
     return GetKeyState(key, "P")
 }
 
 SetSecondaryHotkeys(state) {
-    Hotkey "*" LClick, DoLeftClick, state
-    Hotkey "*" RClick, DoRightClick, state
+    Hotkey "*" LClick, OnMouseDown, state
+    Hotkey "*" RClick, (*) => Click("Right"), state
 
+    doNothing := (*) => ""
     for key in [AbsoluteSwitch, ChordXNull, ChordX1, ChordX2, ChordX3, ChordX4, ChordYNull, ChordY1, ChordY2, ChordY3, ChordY4, WheelDown, WheelUp] {
-        Hotkey "*" key, Nada, state
+        Hotkey "*" key, doNothing, state
     }
 }
 
-DoLeftClick(*) {
-    Click "Left"
+DoOriginal(key) {
+    OutputDebug(key)
+    Send key
 }
 
-DoRightClick(*) {
-    Click "Right"
+OnMouseDown(*) {
+    global DidSomething := True
+    if (GetKeyState("LButton"))
+        return
+    Log("in on mouse down")
+    Click("Left", 1, "Down")
+
+    KeyWait LClick
+    Click("Left", 1, "Up")
 }
 
 GoToBlock(blockX, blockY) {
