@@ -67,7 +67,7 @@ StartChording(*) {
     global InAbsolute := true
     global ChordKeysPressed := 0
     ShowOverlay()
-    SetTimer(EventLoop, 25)
+    SetTimer(EventLoop, 20)
 }
 
 
